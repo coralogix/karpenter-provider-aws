@@ -1,0 +1,23 @@
+name: presubmit
+on:
+  # Push only: pushes to forks of this repo never trigger it, so external
+  # contributors cannot run this CI. Same-repo PR branches are covered by their pushes.
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: presubmit-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type == 'branch' && github.ref_name != github.event.repository.default_branch }}
+jobs:
+  presubmit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+    - uses: ./.github/actions/install-deps
+      with:
+        k8sVersion: "1.36.x"
+    - name: Enable the actionlint matcher
+      run: echo "::add-matcher::.github/actionlint-matcher.json"
+    # vulncheck is left out, as in the coralogix/karpenter fork: vulnerability scans run elsewhere.
+    - run: K8S_VERSION=1.36.x make presubmit licenses
